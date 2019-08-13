@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress-mysql
+spec:
+  selector:
+    matchLabels:
+      component: db
+  template:
+    metadata:
+      labels:
+        component: db
+    spec:
+      volumes:
+        - name: db-storage
+          persistentVolumeClaim:
+            claimName: mariadb-pvc
+      containers:
+      - name: mariadb-pod
+        image: mariadb
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+         - name: db-storage
+           mountPath: /var/lib/mysql
+           subPath: mariadb
+        env:
+          - name: MYSQL_ROOT_PASSWORD
+            value: '1'
+            # valueFrom:
+            #   secretKeyRef:
+            #     name: db-secret
+            #     key: mariadbpass
+          - name: MYSQL_DATABASE
+            value: db
+          - name: MYSQL_USER
+            value: dbuser
+          - name: MYSQL_PASSWORD
+            # value: mypass
+            valueFrom:
+              secretKeyRef:
+                name: dbuserpass
+                key: dbpass 
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-mysql
+spec:
+  selector:
+    component: db
+  type: ClusterIP
+  ports:
+  - port:  3306
+    targetPort:  3306
